@@ -1,12 +1,7 @@
-import AppLayout from './app/AppLayout'
-import HomePage from './features/marketing/pages/HomePage'
+import AppRoutes from './routes/AppRoutes'
 
 const App = () => {
-  return (
-    <AppLayout>
-      <HomePage />
-    </AppLayout>
-  )
+  return <AppRoutes />
 }
 
 export default App

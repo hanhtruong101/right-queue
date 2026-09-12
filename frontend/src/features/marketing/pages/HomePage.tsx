@@ -4,6 +4,7 @@ import {
   Route,
   type LucideIcon,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 type Benefit = {
   title: string
@@ -67,12 +68,12 @@ const HomePage = () => {
               team, reducing repeated forwarding and making the next step clear.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
+              <Link
+                to="/sign-up"
                 className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#2F5E9E] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#244B80] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F5E9E] focus-visible:ring-offset-2"
               >
                 Get started
-              </button>
+              </Link>
               <a
                 href="#how-it-works"
                 className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#D9E3F0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2F5E9E] transition-colors hover:border-[#2F5E9E] hover:bg-[#F3F7FC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F5E9E] focus-visible:ring-offset-2"
@@ -207,12 +208,12 @@ const HomePage = () => {
             Describe what you need and let RightQueue guide it to the next best
             step.
           </p>
-          <button
-            type="button"
+          <Link
+            to="/sign-up"
             className="mt-8 inline-flex min-h-11 items-center justify-center rounded-md bg-[#2F5E9E] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#244B80] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F5E9E] focus-visible:ring-offset-2"
           >
             Get started
-          </button>
+          </Link>
         </div>
       </section>
     </>

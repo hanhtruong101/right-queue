@@ -10,7 +10,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <div className="min-h-screen bg-white font-sans text-[#1E293B] antialiased">
       <Navbar />
-      <main>{children}</main>
+      <main className="pt-18">{children}</main>
       <Footer />
     </div>
   )
