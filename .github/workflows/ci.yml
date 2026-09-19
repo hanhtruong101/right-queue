@@ -40,7 +40,7 @@ jobs:
         run: npm run build
 
   backend:
-    name: Backend Django checks
+    name: Backend checks and tests
     runs-on: ubuntu-latest
 
     defaults:
@@ -51,7 +51,22 @@ jobs:
       DJANGO_SECRET_KEY: ci-only-not-a-real-secret
       DJANGO_DEBUG: "False"
       DJANGO_ALLOWED_HOSTS: localhost
-      DATABASE_URL: "sqlite://:memory:"
+      DATABASE_URL: postgresql://rightqueue_ci:rightqueue_ci@127.0.0.1:5432/rightqueue_ci
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: rightqueue_ci
+          POSTGRES_USER: rightqueue_ci
+          POSTGRES_PASSWORD: rightqueue_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v7
@@ -70,6 +85,12 @@ jobs:
 
       - name: Check Django configuration
         run: python manage.py check
+
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run tests
+        run: python manage.py test
 
       - name: Check for missing migrations
         run: python manage.py makemigrations --check --dry-run
