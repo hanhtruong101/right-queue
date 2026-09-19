@@ -51,7 +51,7 @@ jobs:
       DJANGO_SECRET_KEY: ci-only-not-a-real-secret
       DJANGO_DEBUG: "False"
       DJANGO_ALLOWED_HOSTS: localhost
-      DATABASE_URL: sqlite://:memory:
+      DATABASE_URL: "sqlite://:memory:"
 
     steps:
       - uses: actions/checkout@v7
