@@ -21,7 +21,6 @@ dist/
 htmlcov/
 
 # Django-generated local files
-db.sqlite3
 media/
 staticfiles/
 

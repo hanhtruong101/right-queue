@@ -1,4 +1,4 @@
-# RightQueue — Software Requirements Document
+# RightQueue - Software Requirements Document
 
 | Item | Value |
 | --- | --- |
