@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AppLayout from '../app/AppLayout'
 import SignInPage from '../features/authentication/pages/SignInPage'
-import SignUpPage from '../features/authentication/pages/SignUpPage'
 import DashboardPage from '../features/dashboard/pages/DashboardPage'
 import HomePage from '../features/marketing/pages/HomePage'
 import NewRequestPage from '../features/requester/pages/NewRequestPage'
@@ -32,7 +31,10 @@ const AppRoutes = () => {
           }
         />
         <Route path="/sign-in" element={<SignInPage />} />
-        <Route path="/sign-up" element={<SignUpPage />} />
+        <Route
+          path="/sign-up"
+          element={<Navigate to="/sign-in" replace />}
+        />
         <Route
           path="/dashboard"
           element={

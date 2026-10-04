@@ -131,7 +131,7 @@ const SignInPage = () => {
       </form>
 
       <p className="mt-6 text-center text-sm text-[#526274]">
-        Need an account? Contact your organization administrator.
+        Need access? Contact your organization administrator.
       </p>
     </AuthLayout>
   )

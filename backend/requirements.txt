@@ -6,3 +6,4 @@ drf-spectacular>=0.28,<1.0
 django-environ
 psycopg[binary]>=3.2,<4.0
 django-cors-headers
+coverage
