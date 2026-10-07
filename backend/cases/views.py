@@ -18,7 +18,7 @@ from .serializers import (
 )
 from .services import submit_service_request
 
-class ServiceRequestCreateView(APIView):
+class ServiceRequestListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, organization_slug):

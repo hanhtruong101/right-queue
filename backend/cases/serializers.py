@@ -78,3 +78,25 @@ class ServiceRequestDetailSerializer(serializers.ModelSerializer):
             "submitted_at",
         )
 
+class ServiceRequestSummarySerializer(serializers.ModelSerializer):
+    service_name = serializers.CharField(
+        source="service.name",
+        read_only=True,
+        allow_null=True,
+    )
+    assigned_team_name = serializers.CharField(
+        source="assigned_team.name",
+        read_only=True,
+        allow_null=True,
+    )
+    class Meta: 
+        model = ServiceRequest
+        fields= (
+            "reference,"
+            "title",
+            "service_name",
+            "assigned_team_name",
+            "current_status",
+            "submitted_at",
+            "updated_at",)
+        read_only_fields = fields
