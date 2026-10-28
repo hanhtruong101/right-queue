@@ -92,7 +92,7 @@ class ServiceRequestSummarySerializer(serializers.ModelSerializer):
     class Meta: 
         model = ServiceRequest
         fields= (
-            "reference,"
+            "reference",
             "title",
             "service_name",
             "assigned_team_name",

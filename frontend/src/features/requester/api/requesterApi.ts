@@ -3,10 +3,21 @@ import type {
   CreatedServiceRequest,
   CreateServiceRequestPayload,
   ServiceListItem,
+  ServiceRequestSummary,
 } from '../types'
 
 const organizationPath = (organizationSlug: string) =>
   `/organizations/${encodeURIComponent(organizationSlug)}`
+
+export function getMyRequests(
+  organizationSlug: string,
+  signal?: AbortSignal,
+): Promise<ServiceRequestSummary[]> {
+  return apiRequest<ServiceRequestSummary[]>(
+    `${organizationPath(organizationSlug)}/requests/`,
+    { signal },
+  )
+}
 
 export function getOrganizationServices(
   organizationSlug: string,

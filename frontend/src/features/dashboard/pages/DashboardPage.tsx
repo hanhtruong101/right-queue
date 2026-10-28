@@ -179,6 +179,12 @@ const DashboardPage = () => {
                           <Plus size={17} aria-hidden="true" />
                           Submit a request
                         </Link>
+                        <Link
+                          to={`/organizations/${encodeURIComponent(membership.organization_slug)}/requests`}
+                          className="rounded-md px-4 py-2 text-sm font-semibold text-[#2F5E9E] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F5E9E]"
+                        >
+                          My requests
+                        </Link>
                       </div>
                     </div>
                   </li>

@@ -5,6 +5,7 @@ import SignInPage from '../features/authentication/pages/SignInPage'
 import DashboardPage from '../features/dashboard/pages/DashboardPage'
 import HomePage from '../features/marketing/pages/HomePage'
 import NewRequestPage from '../features/requester/pages/NewRequestPage'
+import MyRequestsPage from '../features/requester/pages/MyRequestsPage'
 import ProtectedRoute from './ProtectedRoute'
 
 const RouteScrollReset = () => {
@@ -48,6 +49,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <NewRequestPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/organizations/:organizationSlug/requests"
+          element={
+            <ProtectedRoute>
+              <MyRequestsPage />
             </ProtectedRoute>
           }
         />
