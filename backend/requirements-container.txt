@@ -1,0 +1,5 @@
+# Seperate from requirements.txt to distinguishe shared application dependencies from deployment dependencies
+
+-r requirements.txt # Install this one first
+gunicorn>=23,<24
+whitenoise>=6.8,<7

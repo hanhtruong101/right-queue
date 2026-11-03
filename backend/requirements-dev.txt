@@ -1,0 +1,4 @@
+# For development and testing
+-r requirements.txt
+
+coverage==7.16.2

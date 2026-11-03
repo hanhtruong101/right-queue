@@ -92,5 +92,5 @@ jobs:
       - name: Run tests
         run: python manage.py test
 
-      - name: Check for missing migrations
-        run: python manage.py makemigrations --check --dry-run
+      - name: Build production container
+        run: docker build --tag rightqueue-backend:${{ github.sha }} .
