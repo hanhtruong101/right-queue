@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from service_catalogue.models import Service
 from .models import ServiceRequest
 
 # validates the input 
@@ -11,28 +10,7 @@ class ServiceRequestCreateSerializer(serializers.Serializer):
     description = serializers.CharField(
         trim_whitespace=True,
     )
-    service = serializers.PrimaryKeyRelatedField(
-        queryset=Service.objects.none(),
-        required=False,
-        allow_null=True,
-    )
-    # converts the service id into a Service object
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
-        organization = self.context.get("organization")
-
-        if organization is not None:
-            service_field = self.fields["service"]
-
-            if isinstance(
-                service_field,
-                serializers.PrimaryKeyRelatedField,
-            ):
-                service_field.queryset = Service.objects.filter(
-                    organization=organization,
-                    is_active=True,
-                )
     def validate_title(self, value):
         if len(value) < 5:
             raise serializers.ValidationError(

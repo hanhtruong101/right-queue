@@ -11,6 +11,7 @@ from organizations.models import (
     OrganizationMembership,
     OrganizationMembershipRole,
 )
+from routing.models import RoutingKeyword, RoutingRule
 from service_catalogue.models import Service, ServiceTeam
 
 
@@ -137,11 +138,19 @@ class SubmitServiceRequestTests(TestCase):
             slug="account-access",
         )
 
+        for service, phrase in [
+            (cls.active_service, "account"),
+            (cls.service_with_inactive_team, "legacy software"),
+            (cls.other_organization_service, "foreign"),
+            (cls.inactive_service, "retired"),
+        ]:
+            rule = RoutingRule.objects.create(organization=service.organization, name=service.name, service=service)
+            RoutingKeyword.objects.create(rule=rule, phrase=phrase, weight=3)
+
     def test_active_requester_and_service_are_automatically_routed(self):
         service_request = submit_service_request(
             organization=self.active_organization,
             requester=self.active_requester,
-            service=self.active_service,
             title="  Cannot access account  ",
             description="  My account sign-in is not working.  ",
         )
@@ -168,11 +177,10 @@ class SubmitServiceRequestTests(TestCase):
         self.assertIsNone(history[1].changed_by)
         self.assertLess(history[0].created_at, history[1].created_at)
 
-    def test_request_without_service_is_sent_to_manual_triage(self):
+    def test_request_without_matching_keywords_is_sent_to_manual_triage(self):
         service_request = submit_service_request(
             organization=self.active_organization,
             requester=self.active_requester,
-            service=None,
             title="General support request",
             description="I am not sure which service applies.",
         )
@@ -198,7 +206,6 @@ class SubmitServiceRequestTests(TestCase):
         service_request = submit_service_request(
             organization=self.active_organization,
             requester=self.active_requester,
-            service=self.service_with_inactive_team,
             title="Legacy software request",
             description="I need help with legacy software.",
         )
@@ -215,7 +222,6 @@ class SubmitServiceRequestTests(TestCase):
             submit_service_request(
                 organization=self.inactive_organization,
                 requester=self.other_organization_requester,
-                service=self.other_organization_service,
                 title="Account access request",
                 description="I need help accessing my account.",
             )
@@ -228,7 +234,6 @@ class SubmitServiceRequestTests(TestCase):
             submit_service_request(
                 organization=self.active_organization,
                 requester=self.inactive_requester,
-                service=self.active_service,
                 title="Account access request",
                 description="I need help accessing my account.",
             )
@@ -241,7 +246,6 @@ class SubmitServiceRequestTests(TestCase):
             submit_service_request(
                 organization=self.active_organization,
                 requester=self.other_organization_requester,
-                service=self.active_service,
                 title="Account access request",
                 description="I need help accessing my account.",
             )
@@ -249,38 +253,29 @@ class SubmitServiceRequestTests(TestCase):
         self.assertFalse(ServiceRequest.objects.exists())
         self.assertFalse(RequestStatusHistory.objects.exists())
 
-    def test_service_from_another_organization_is_rejected_without_records(self):
-        with self.assertRaises(ValidationError):
-            submit_service_request(
-                organization=self.active_organization,
-                requester=self.active_requester,
-                service=self.other_organization_service,
-                title="Account access request",
-                description="I need help accessing my account.",
-            )
+    def test_matching_rule_in_another_organization_cannot_route_request(self):
+        request = submit_service_request(
+            organization=self.active_organization, requester=self.active_requester,
+            title="Foreign issue", description="Please help.",
+        )
+        self.assertEqual(request.current_status, ServiceRequest.Status.PENDING_TRIAGE)
+        self.assertIsNone(request.service)
+        self.assertIsNone(request.assigned_team)
 
-        self.assertFalse(ServiceRequest.objects.exists())
-        self.assertFalse(RequestStatusHistory.objects.exists())
-
-    def test_inactive_service_is_rejected_without_persisting_records(self):
-        with self.assertRaises(ValidationError):
-            submit_service_request(
-                organization=self.active_organization,
-                requester=self.active_requester,
-                service=self.inactive_service,
-                title="Legacy account request",
-                description="I need help with a legacy account.",
-            )
-
-        self.assertFalse(ServiceRequest.objects.exists())
-        self.assertFalse(RequestStatusHistory.objects.exists())
+    def test_matching_rule_with_inactive_service_cannot_route_request(self):
+        request = submit_service_request(
+            organization=self.active_organization, requester=self.active_requester,
+            title="Retired system", description="Please help.",
+        )
+        self.assertEqual(request.current_status, ServiceRequest.Status.PENDING_TRIAGE)
+        self.assertIsNone(request.service)
+        self.assertIsNone(request.assigned_team)
 
     def test_membership_without_requester_role_is_rejected_without_records(self):
         with self.assertRaises(ValidationError):
             submit_service_request(
                 organization=self.active_organization,
                 requester=self.requester_without_role,
-                service=self.active_service,
                 title="Account access request",
                 description="I need help accessing my account.",
             )
@@ -292,7 +287,6 @@ class SubmitServiceRequestTests(TestCase):
         service_request = submit_service_request(
             organization=self.active_organization,
             requester=self.multi_role_requester,
-            service=self.active_service,
             title="Account access request",
             description="I need help accessing my account.",
         )
@@ -307,7 +301,6 @@ class SubmitServiceRequestTests(TestCase):
             submit_service_request(
                 organization=self.active_organization,
                 requester=self.active_requester,
-                service=self.active_service,
                 title="   ",
                 description="I need help accessing my account.",
             )
@@ -320,7 +313,6 @@ class SubmitServiceRequestTests(TestCase):
             submit_service_request(
                 organization=self.active_organization,
                 requester=self.active_requester,
-                service=self.active_service,
                 title="Account access request",
                 description="   ",
             )
@@ -352,7 +344,6 @@ class SubmitServiceRequestTests(TestCase):
                 submit_service_request(
                     organization=self.active_organization,
                     requester=self.active_requester,
-                    service=self.active_service,
                     title="Account access request",
                     description="I need help accessing my account.",
                 )

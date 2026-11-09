@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from organizations.models import Organization, OrganizationMembership, OrganizationMembershipRole
-from service_catalogue.models import Service
+from routing.services import route_service_request
 
 from .models import RequestStatusHistory, ServiceRequest
 
@@ -14,7 +14,6 @@ def submit_service_request(
     requester: OrganizationMembership,
     title: str,
     description: str,
-    service: Service | None = None,
 ) -> ServiceRequest:
     if not organization.is_active:
         raise ValidationError({
@@ -33,21 +32,6 @@ def submit_service_request(
                 )
             }
         )
-    if service is not None:
-        if service.organization_id != organization.id:
-            raise ValidationError(
-                {
-                    "service": (
-                        "The service must belong to the selected organization."
-                    )
-                }
-            )
-
-        if not service.is_active:
-            raise ValidationError(
-                {"service": "The selected service is inactive."}
-            )
-
     has_requester_role = requester.roles.filter(
         role=OrganizationMembershipRole.Role.REQUESTER
     ).exists()
@@ -66,7 +50,6 @@ def submit_service_request(
     request = ServiceRequest(
         organization=organization,
         requester=requester,
-        service=service,
         assigned_team=None,
         title=title.strip(),
         description=description.strip(),
@@ -88,39 +71,4 @@ def submit_service_request(
     submitted_event.full_clean()
     submitted_event.save()
 
-    # In case no team was assigned directly to that service yet
-    destination_team = None
-    next_status = ServiceRequest.Status.PENDING_TRIAGE
-    routing_reason = "The request requires manual triage"
-
-    # If there is a team associate with the service
-    if service is not None and service.default_team.is_active:
-        destination_team = service.default_team
-        next_status = ServiceRequest.Status.QUEUED
-        routing_reason = "Automatically routed to the service's default team."
-
-    request.assigned_team = destination_team
-    request.current_status = next_status
-
-    # Validate again
-    request.full_clean()
-    request.save(
-        update_fields=[
-            "assigned_team",
-            "current_status",
-            "updated_at",
-        ]
-    )
-
-    # Record the routing result
-    routing_event = RequestStatusHistory(
-    request=request,
-    from_status=ServiceRequest.Status.SUBMITTED,
-    to_status=next_status,
-    changed_by=None, # System do the routing
-    reason=routing_reason,
-    )
-    routing_event.full_clean()
-    routing_event.save()
-
-    return request
+    return route_service_request(request)

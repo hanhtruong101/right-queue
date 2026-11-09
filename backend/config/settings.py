@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "organizations.apps.OrganizationsConfig",
     "service_catalogue.apps.ServiceCatalogueConfig",
     "cases.apps.CasesConfig",
+    "routing.apps.RoutingConfig",
     "accounts.apps.AccountsConfig",
 
     "rest_framework",

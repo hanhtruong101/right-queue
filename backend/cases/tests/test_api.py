@@ -13,6 +13,7 @@ from organizations.models import (
     OrganizationMembership,
     OrganizationMembershipRole,
 )
+from routing.models import RoutingKeyword, RoutingRule
 from service_catalogue.models import Service, ServiceTeam
 
 
@@ -139,6 +140,9 @@ class ServiceRequestCreateAPITests(TestCase):
             slug="account-access",
         )
 
+        rule = RoutingRule.objects.create(organization=cls.first_organization, name="Account support", service=cls.active_service)
+        RoutingKeyword.objects.create(rule=rule, phrase="account", weight=3)
+
     def setUp(self):
         self.client = APIClient()
         self.url = reverse(
@@ -148,7 +152,6 @@ class ServiceRequestCreateAPITests(TestCase):
         self.valid_payload = {
             "title": "Cannot access account",
             "description": "My account sign-in is not working.",
-            "service": self.active_service.pk,
         }
 
     def test_active_requester_can_create_automatically_routed_request(self):
@@ -201,7 +204,7 @@ class ServiceRequestCreateAPITests(TestCase):
         self.assertEqual(response.data["current_status"], ServiceRequest.Status.QUEUED)
         self.assertIsNotNone(response.data["submitted_at"])
 
-    def test_omitting_service_creates_pending_triage_request(self):
+    def test_unclear_text_creates_pending_triage_request(self):
         self.client.force_authenticate(user=self.requester_user)
         payload = {
             "title": "General support request",
@@ -229,12 +232,12 @@ class ServiceRequestCreateAPITests(TestCase):
             ServiceRequest.Status.PENDING_TRIAGE,
         )
 
-    def test_null_service_creates_pending_triage_request(self):
+    def test_client_service_cannot_force_unclear_request_into_queue(self):
         self.client.force_authenticate(user=self.requester_user)
         payload = {
             "title": "General support request",
             "description": "I am not sure which service applies.",
-            "service": None,
+            "service": self.active_service.pk,
         }
 
         response = self.client.post(self.url, payload, format="json")
@@ -321,27 +324,25 @@ class ServiceRequestCreateAPITests(TestCase):
         self.assertFalse(ServiceRequest.objects.exists())
         self.assertFalse(RequestStatusHistory.objects.exists())
 
-    def test_service_from_another_organization_is_rejected(self):
+    def test_service_from_another_organization_cannot_override_text_match(self):
         self.client.force_authenticate(user=self.requester_user)
         payload = {**self.valid_payload, "service": self.other_organization_service.pk}
 
         response = self.client.post(self.url, payload, format="json")
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("service", response.data)
-        self.assertFalse(ServiceRequest.objects.exists())
-        self.assertFalse(RequestStatusHistory.objects.exists())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["service"], self.active_service.pk)
+        self.assertEqual(response.data["assigned_team"], self.active_team.pk)
 
-    def test_inactive_service_is_rejected(self):
+    def test_inactive_service_cannot_override_text_match(self):
         self.client.force_authenticate(user=self.requester_user)
         payload = {**self.valid_payload, "service": self.inactive_service.pk}
 
         response = self.client.post(self.url, payload, format="json")
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("service", response.data)
-        self.assertFalse(ServiceRequest.objects.exists())
-        self.assertFalse(RequestStatusHistory.objects.exists())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["service"], self.active_service.pk)
+        self.assertEqual(response.data["assigned_team"], self.active_team.pk)
 
     def test_title_shorter_than_five_characters_is_rejected(self):
         self.client.force_authenticate(user=self.requester_user)
@@ -395,6 +396,7 @@ class ServiceRequestCreateAPITests(TestCase):
         self.client.force_authenticate(user=self.requester_user)
         payload = {
             **self.valid_payload,
+            "service": self.other_organization_service.pk,
             "organization": 999,
             "requester": 999,
             "assigned_team": 999,

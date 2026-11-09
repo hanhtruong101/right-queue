@@ -35,7 +35,6 @@ class ServiceRequestListCreateView(APIView):
         
         input_serializer = ServiceRequestCreateSerializer(
             data=request.data,
-            context={"organization": organization},
         )
 
         input_serializer.is_valid(raise_exception=True)
