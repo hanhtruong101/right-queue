@@ -8,7 +8,6 @@ export interface ServiceListItem {
 export interface CreateServiceRequestPayload {
   title: string
   description: string
-  service: number | null
 }
 
 export type RequestStatus = 'QUEUED' | 'PENDING_TRIAGE'

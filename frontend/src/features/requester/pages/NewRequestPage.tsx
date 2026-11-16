@@ -4,27 +4,17 @@ import {
   ClipboardPenLine,
   Send,
 } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../../../services/apiClient'
 import { useAuth } from '../../hooks/useAuth'
-import {
-  createServiceRequest,
-  getOrganizationServices,
-} from '../api/requesterApi'
+import { createServiceRequest } from '../api/requesterApi'
 import type {
   CreatedServiceRequest,
   RequestStatus,
-  ServiceListItem,
 } from '../types'
 
-type ServiceLoadState =
-  | { status: 'loading' }
-  | { status: 'ready'; services: ServiceListItem[] }
-  | { status: 'access-denied' }
-  | { status: 'error' }
-
-type FieldErrors = Partial<Record<'title' | 'description' | 'service', string>>
+type FieldErrors = Partial<Record<'title' | 'description', string>>
 
 const statusLabels: Record<RequestStatus, string> = {
   QUEUED: 'Queued',
@@ -51,66 +41,13 @@ const NewRequestPage = () => {
     (item) => item.organization_slug === organizationSlug,
   )
 
-  const [serviceState, setServiceState] = useState<ServiceLoadState>({
-    status: 'loading',
-  })
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [serviceId, setServiceId] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdRequest, setCreatedRequest] =
     useState<CreatedServiceRequest | null>(null)
-
-  useEffect(() => {
-    if (!membership) {
-      return
-    }
-
-    const controller = new AbortController()
-    let isCurrent = true
-
-    const loadServices = async () => {
-      await Promise.resolve()
-
-      if (!isCurrent) {
-        return
-      }
-
-      setServiceState({ status: 'loading' })
-
-      try {
-        const services = await getOrganizationServices(
-          organizationSlug,
-          controller.signal,
-        )
-        if (isCurrent) {
-          setServiceState({ status: 'ready', services })
-        }
-      } catch (error) {
-        if (!isCurrent) {
-          return
-        }
-
-        if (
-          error instanceof ApiError &&
-          (error.status === 403 || error.status === 404)
-        ) {
-          setServiceState({ status: 'access-denied' })
-        } else {
-          setServiceState({ status: 'error' })
-        }
-      }
-    }
-
-    void loadServices()
-
-    return () => {
-      isCurrent = false
-      controller.abort()
-    }
-  }, [membership, organizationSlug])
 
   const validateForm = () => {
     const errors: FieldErrors = {}
@@ -130,7 +67,7 @@ const NewRequestPage = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (isSubmitting || !membership || serviceState.status !== 'ready') {
+    if (isSubmitting || !membership) {
       return
     }
 
@@ -145,7 +82,6 @@ const NewRequestPage = () => {
       const response = await createServiceRequest(organizationSlug, {
         title: title.trim(),
         description: description.trim(),
-        service: serviceId ? Number(serviceId) : null,
       })
       setCreatedRequest(response)
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -162,10 +98,6 @@ const NewRequestPage = () => {
         }
         if ('description' in data) {
           errors.description = 'Enter a valid description for your request.'
-        }
-        if ('service' in data) {
-          errors.service =
-            'Choose an available service or select the unsure option.'
         }
 
         setFieldErrors(errors)
@@ -194,14 +126,13 @@ const NewRequestPage = () => {
   const resetForm = () => {
     setTitle('')
     setDescription('')
-    setServiceId('')
     setFieldErrors({})
     setFormError('')
     setCreatedRequest(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  if (!membership || serviceState.status === 'access-denied') {
+  if (!membership) {
     return (
       <PageShell>
         <section className="mx-auto max-w-xl rounded-lg border border-[#D9E3F0] bg-white p-6 text-center shadow-sm sm:p-8">
@@ -212,45 +143,6 @@ const NewRequestPage = () => {
           <Link
             to="/dashboard"
             className="mt-6 inline-flex min-h-11 items-center justify-center rounded-md bg-[#2F5E9E] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#244B80] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F5E9E] focus-visible:ring-offset-2"
-          >
-            Return to dashboard
-          </Link>
-        </section>
-      </PageShell>
-    )
-  }
-
-  if (serviceState.status === 'loading') {
-    return (
-      <PageShell>
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex min-h-64 items-center justify-center gap-3 text-sm font-medium text-[#526274]"
-        >
-          <span
-            aria-hidden="true"
-            className="h-5 w-5 animate-spin rounded-full border-2 border-[#D9E3F0] border-t-[#2F5E9E]"
-          />
-          Loading available services…
-        </div>
-      </PageShell>
-    )
-  }
-
-  if (serviceState.status === 'error') {
-    return (
-      <PageShell>
-        <section className="mx-auto max-w-xl rounded-lg border border-[#D9E3F0] bg-white p-6 text-center shadow-sm sm:p-8">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Services could not be loaded
-          </h1>
-          <p className="mt-3 leading-7 text-[#526274]">
-            Check your connection and try opening this page again.
-          </p>
-          <Link
-            to="/dashboard"
-            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-md border border-[#2F5E9E] px-5 py-2.5 text-sm font-semibold text-[#2F5E9E] transition-colors hover:bg-[#F3F7FC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F5E9E] focus-visible:ring-offset-2"
           >
             Return to dashboard
           </Link>
@@ -289,14 +181,12 @@ const NewRequestPage = () => {
             <ConfirmationRow label="Title" value={createdRequest.title} />
             <ConfirmationRow
               label="Service"
-              value={createdRequest.service_name ?? 'Not specified'}
+              value={createdRequest.service_name ?? 'Not yet identified'}
             />
-            {createdRequest.assigned_team_name && (
-              <ConfirmationRow
-                label="Assigned team"
-                value={createdRequest.assigned_team_name}
-              />
-            )}
+            <ConfirmationRow
+              label="Assigned team"
+              value={createdRequest.assigned_team_name ?? 'Not yet assigned'}
+            />
             <ConfirmationRow label="Status" value={statusLabel} />
             <ConfirmationRow
               label="Submitted"
@@ -343,17 +233,11 @@ const NewRequestPage = () => {
             Submit a request
           </h1>
           <p className="mt-3 leading-7 text-[#526274]">
-            Describe what you need. Choose a service when you know it, or let
-            triage review your request.
+            Describe what you need help with. RightQueue will identify the
+            appropriate service and route your request automatically. Unclear
+            requests will be reviewed by a triage coordinator.
           </p>
         </header>
-
-        {serviceState.services.length === 0 && (
-          <p className="mt-6 rounded-md border border-[#D9E3F0] bg-white px-4 py-3 text-sm leading-6 text-[#526274]">
-            No services are currently available. You can still submit your
-            request without selecting a service.
-          </p>
-        )}
 
         <form
           onSubmit={handleSubmit}
@@ -427,34 +311,6 @@ const NewRequestPage = () => {
                 className="mt-2 text-sm text-red-700"
               >
                 {fieldErrors.description}
-              </p>
-            )}
-          </div>
-
-          <div className="mt-5">
-            <label htmlFor="request-service" className="block text-sm font-semibold">
-              Service <span className="font-normal text-[#526274]">(optional)</span>
-            </label>
-            <select
-              id="request-service"
-              name="service"
-              value={serviceId}
-              onChange={(event) => setServiceId(event.target.value)}
-              disabled={isSubmitting}
-              aria-describedby={fieldErrors.service ? 'request-service-error' : undefined}
-              aria-invalid={Boolean(fieldErrors.service)}
-              className="mt-2 block min-h-11 w-full rounded-md border border-[#D9E3F0] bg-white px-3.5 py-2.5 outline-none transition focus:border-[#2F5E9E] focus:ring-2 focus:ring-[#2F5E9E]/20 disabled:bg-slate-50"
-            >
-              <option value="">I&apos;m not sure which service I need</option>
-              {serviceState.services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.service && (
-              <p id="request-service-error" className="mt-2 text-sm text-red-700">
-                {fieldErrors.service}
               </p>
             )}
           </div>

@@ -37,7 +37,10 @@ export function createServiceRequest(
     `${organizationPath(organizationSlug)}/requests/`,
     {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        title: payload.title,
+        description: payload.description,
+      }),
     },
   )
 }
