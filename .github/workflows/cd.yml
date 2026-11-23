@@ -1,4 +1,4 @@
-name: Deploy RightQueue to Azure
+name: CD pipeline - Deploy RightQueue to Azure
 
 on:
   workflow_dispatch:
