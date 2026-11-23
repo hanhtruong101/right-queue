@@ -1,0 +1,113 @@
+name: Deploy RightQueue to Azure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: rightqueue-production
+  cancel-in-progress: false
+
+env:
+  RESOURCE_GROUP: right-queue
+
+  ACR_NAME: rightqueue
+  ACR_LOGIN_SERVER: rightqueue-f8d8b8fxcrc4b5c4.azurecr.io
+
+  BACKEND_APP: rightqueue-api
+  FRONTEND_APP: rightqueue-frontend
+
+  BACKEND_IMAGE: rightqueue-backend
+  FRONTEND_IMAGE: rightqueue-frontend
+
+  BACKEND_URL: https://rightqueue-api.calmmeadow-c7f2c3ec.francecentral.azurecontainerapps.io
+  FRONTEND_URL: https://rightqueue-frontend.calmmeadow-c7f2c3ec.francecentral.azurecontainerapps.io
+
+jobs:
+  deploy:
+    name: Build and deploy production
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v7
+
+      - name: Log in to Azure using OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Prepare Container Apps commands
+        run: az extension add --name containerapp --upgrade --yes
+
+      - name: Log in to Azure Container Registry
+        run: az acr login --name "$ACR_NAME"
+
+      - name: Build backend image
+        run: |
+          docker build \
+            --tag "$ACR_LOGIN_SERVER/$BACKEND_IMAGE:${{ github.sha }}" \
+            ./backend
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            --build-arg VITE_API_BASE_URL="$BACKEND_URL/api" \
+            --tag "$ACR_LOGIN_SERVER/$FRONTEND_IMAGE:${{ github.sha }}" \
+            ./frontend
+
+      - name: Push backend image
+        run: |
+          docker push \
+            "$ACR_LOGIN_SERVER/$BACKEND_IMAGE:${{ github.sha }}"
+
+      - name: Push frontend image
+        run: |
+          docker push \
+            "$ACR_LOGIN_SERVER/$FRONTEND_IMAGE:${{ github.sha }}"
+
+      - name: Deploy backend
+        run: |
+          az containerapp update \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$BACKEND_APP" \
+            --image "$ACR_LOGIN_SERVER/$BACKEND_IMAGE:${{ github.sha }}" \
+            --output none
+
+      - name: Check backend
+        run: |
+          curl \
+            --fail \
+            --show-error \
+            --silent \
+            --retry 12 \
+            --retry-delay 10 \
+            --retry-all-errors \
+            "$BACKEND_URL/api/auth/csrf/" \
+            > /dev/null
+
+      - name: Deploy frontend
+        run: |
+          az containerapp update \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$FRONTEND_APP" \
+            --image "$ACR_LOGIN_SERVER/$FRONTEND_IMAGE:${{ github.sha }}" \
+            --output none
+
+      - name: Check frontend
+        run: |
+          curl \
+            --fail \
+            --show-error \
+            --silent \
+            --retry 12 \
+            --retry-delay 10 \
+            --retry-all-errors \
+            "$FRONTEND_URL/health" \
+            > /dev/null
